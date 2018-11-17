@@ -17,4 +17,4 @@ class JustinLocation(State):
 	
         result = visit_door_sm.execute(datathing)
         #time.sleep(6)
-        return 'succeeded'
+        return result
