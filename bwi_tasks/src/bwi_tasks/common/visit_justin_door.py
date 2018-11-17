@@ -3,6 +3,7 @@ from bwi_kr_execution import goal_formulators, knowledge
 import knowledge_representation
 from smach import State
 import rospy
+import time
 
 class JustinLocation(State):
     def __init__(self):
@@ -14,5 +15,6 @@ class JustinLocation(State):
 	visit_door_sm = task_machine.generate_goal_based_task_sm(
 		goal_formulators.GoToLocationName(), ["location"])
 	
-        visit_door_sm.execute(datathing)
+        result = visit_door_sm.execute(datathing)
+        #time.sleep(6)
         return 'succeeded'

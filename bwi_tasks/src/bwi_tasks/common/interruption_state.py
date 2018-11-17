@@ -8,6 +8,8 @@ from bwi_kr_execution import goal_formulators
 from std_msgs.msg import Empty, String
 import actionlib
 import random
+import time
+import sys, select
 
 
 def run_concurrence(goal):
@@ -16,11 +18,17 @@ def run_concurrence(goal):
 
 	cc = Concurrence(outcomes=['succeeded', 'preempted', 'aborted'],
 				default_outcome = 'succeeded',
-				child_termination_cb = child_term_cb,
-				outcome_cb = out_cb)
+				outcome_map = {'succeeded':{'GENERATE_GOAL':'succeeded'},
+					'preempted':{'INTERRUPT_TASK':'preempted'},
+					'aborted':{'GENERATE_GOAL':'aborted'}},
+				outcome_cb = out_cb,
+				child_termination_cb = child_term_cb)
+
+	rospy.loginfo(cc._child_termination_cb)
 
 	with cc:
-	    Concurrence.add('GENERATE_GOAL', actions_dictionary.ActionDictionary().findAction(goal))
+	    Concurrence.add('GENERATE_GOAL', 
+	    	actions_dictionary.ActionDictionary().findAction(goal))
 
 	    Concurrence.add('INTERRUPT_TASK', Interrupt(goal))
 	
@@ -38,17 +46,24 @@ class Interrupt(State):
 # if goal is cancelled, add goal back to stack and then return that way the goal stays in the
 # stack for later use
 		
-		raw_input("Press Enter to interrupt me.")
+		print "Hit any key to interrupt"
+		while (not self.preempt_requested()) :
 		
-		client = actionlib.SimpleActionClient("/plan_executor/execute_plan",
-				ExecutePlanAction)
-		rospy.loginfo("before server")
-		client.wait_for_server()
-		rospy.loginfo("after server")
-		client.cancel_all_goals()
-		rospy.loginfo("after cancel")
+			#print "You have a second to answer!"
 			
-		return "preempted"
+			i, o, e = select.select( [sys.stdin], [], [], 1 )
+			if (i):
+				client = actionlib.SimpleActionClient(
+					"/plan_executor/execute_plan", ExecutePlanAction)
+				rospy.loginfo("before server")
+				client.wait_for_server()
+				rospy.loginfo("after server")
+				client.cancel_all_goals()
+				rospy.loginfo("after cancel")	
+				return 'preempted'
+				
+		rospy.loginfo("preempt_requested by outside")
+		return 'continued'
 		
 		
 def out_cb(outcome_map):
@@ -62,17 +77,22 @@ def out_cb(outcome_map):
 
 def child_term_cb(outcome_map):
 
+	#return ['INTERRUPT_TASK']
+
 	rospy.loginfo("child term")
 	rospy.loginfo(outcome_map['INTERRUPT_TASK'])
+	rospy.loginfo(outcome_map['GENERATE_GOAL'])
 	
 	if outcome_map['INTERRUPT_TASK'] == 'preempted':
 		rospy.loginfo("interrupt task cb")
 		return True
 		
 	elif outcome_map['GENERATE_GOAL'] == 'succeeded':
+		rospy.loginfo("generate goal cb")
 		return True
 		
 	elif outcome_map['GENERATE_GOAL'] == 'aborted':
+		rospy.loginfo("generate goal abort")
 		return True
 		
 	return False	

@@ -16,5 +16,5 @@ class GetRandomLocation(State):
 	visit_door_sm = task_machine.generate_goal_based_task_sm(
 		goal_formulators.GoToLocationName(), ["location"])
 	
-        visit_door_sm.execute(datathing)
-        return 'succeeded'
+        result = visit_door_sm.execute(datathing)
+        return result
