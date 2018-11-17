@@ -1,5 +1,4 @@
-#ifndef actasp_GraphPolicy_h__guard
-#define actasp_GraphPolicy_h__guard
+#pragma once
 
 #include <actasp/PartialPolicy.h>
 
@@ -17,7 +16,7 @@ public:
   
   GraphPolicy(const ActionSet& actions);
   
-  ActionSet actions(const std::set<AspFluent>& state) const throw();
+  ActionSet actions(const std::set<AspFluent>& state) const noexcept;
   
   void merge(const AnswerSet& plan) throw(std::logic_error);
   
@@ -25,9 +24,9 @@ public:
   
   void merge(const GraphPolicy* otherPolicy);
   
-  bool empty() const throw();
+  bool empty() const noexcept;
   
-  std::vector<actasp::AnswerSet> plansFrom(const std::set<AspFluent>& state) throw();
+  std::vector<actasp::AnswerSet> plansFrom(const std::set<AspFluent>& state) noexcept;
   
 private:
   
@@ -45,4 +44,4 @@ private:
   
 }
 
-#endif
+
