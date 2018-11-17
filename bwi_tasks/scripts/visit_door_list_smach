@@ -29,15 +29,20 @@ def main():
         # Add states
         StateMachine.add_auto("DECIDE_DESTINATION", knowledge.GetRandomBwiLocation(ltmc), ["succeeded"])
         
-        StateMachine.add('RUN_CONCURRENCE', interruption_state.run_concurrence(), ["location"],
-        		  transitions={'succeeded': "DECIDE_DESTINATION",
-        		  	       'interrupted': 'DECIDE_DESTINATION',
-        		  	       'aborted': 'DECIDE_DESTINATION'})
+#        StateMachine.add('RUN_CONCURRENCE', interruption_state.run_concurrence(),
+#        		  transitions={'succeeded': 'DECIDE_DESTINATION',
+#        		  	'interrupted': 'DECIDE_DESTINATION',
+#        		  	'aborted': 'DECIDE_DESTINATION'})
 
 #        StateMachine.add('GOTO_DOOR', task_machine.generate_goal_based_task_sm(
 #                              goal_formulators.GoToLocationName(), ["location"]),
 #                         transitions={"succeeded": "DECIDE_DESTINATION",
 #                                      'aborted': 'DECIDE_DESTINATION'})
+
+        StateMachine.add('GOTO_DOOR', interruption_state.run_concurrence(["location"]),
+                          transitions={"succeeded": "DECIDE_DESTINATION",
+                                       'aborted': 'DECIDE_DESTINATION',
+                                       'interrupted': 'DECIDE_DESTINATION'})
 
     if introspect:
         sis = smach_ros.IntrospectionServer('introspection_server', sm, '/SM_ROOT')
