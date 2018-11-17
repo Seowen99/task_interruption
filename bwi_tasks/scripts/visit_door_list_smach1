@@ -7,7 +7,7 @@ import smach_ros
 from knowledge_representation import LongTermMemoryConduit
 from smach import StateMachine, State
 
-from bwi_tasks.common import states, control_flow, task_machine, interruption_state, visit_random_door, visit_lab_door, visit_justin_door
+from bwi_tasks.common import states, control_flow, task_machine
 from bwi_kr_execution import goal_formulators, knowledge
 
 
@@ -28,9 +28,13 @@ def main():
     # Open the container
     with sm:
         # Add states
-	
-	StateMachine.add("DECIDE_DESTINATION",
-		interruption_state.run_concurrence("GO TO JUSTIN DOOR"))
+        StateMachine.add_auto("DECIDE_DESTINATION", knowledge.GetRandomBwiLocation(ltmc), ["succeeded"])
+
+        StateMachine.add('GOTO_DOOR', task_machine.generate_goal_based_task_sm(
+                              goal_formulators.GoToLocationName(), ["location"]),
+                         transitions={"succeeded": "DECIDE_DESTINATION",
+                                      'aborted': 'DECIDE_DESTINATION'})
+
 
     if introspect:
         sis = smach_ros.IntrospectionServer('introspection_server', sm, '/SM_ROOT')
