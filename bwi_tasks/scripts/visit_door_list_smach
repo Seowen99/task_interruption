@@ -7,8 +7,9 @@ import smach_ros
 from knowledge_representation import LongTermMemoryConduit
 from smach import StateMachine, State
 
-from bwi_tasks.common import states, control_flow, task_machine, interruption_state
+from bwi_tasks.common import states, control_flow, task_machine, interruption_state, visit_random_door
 from bwi_kr_execution import goal_formulators, knowledge
+
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
     # Open the container
     with sm:
         # Add states
-        StateMachine.add_auto("DECIDE_DESTINATION", knowledge.GetRandomBwiLocation(ltmc), ["succeeded"])
+#        StateMachine.add_auto("DECIDE_DESTINATION", knowledge.GetRandomBwiLocation(ltmc), ["succeeded"])
         
 #        StateMachine.add('RUN_CONCURRENCE', interruption_state.run_concurrence(),
 #        		  transitions={'succeeded': 'DECIDE_DESTINATION',
@@ -39,10 +40,15 @@ def main():
 #                         transitions={"succeeded": "DECIDE_DESTINATION",
 #                                      'aborted': 'DECIDE_DESTINATION'})
 
-        StateMachine.add('GOTO_DOOR', interruption_state.run_concurrence(["location"]),
-                          transitions={"succeeded": "DECIDE_DESTINATION",
-                                       'aborted': 'DECIDE_DESTINATION',
-                                       'interrupted': 'DECIDE_DESTINATION'})
+#        StateMachine.add('GOTO_DOOR', interruption_state.run_concurrence(["location"]),
+#                          transitions={"succeeded": "DECIDE_DESTINATION",
+#                                       'aborted': 'DECIDE_DESTINATION',
+#                                       'interrupted': 'DECIDE_DESTINATION'})
+
+	randloc = visit_random_door.GetRandomLocation()
+	
+	StateMachine.add("DECIDE_DESTINATION",
+		interruption_state.run_concurrence(randloc, ["location"]))
 
     if introspect:
         sis = smach_ros.IntrospectionServer('introspection_server', sm, '/SM_ROOT')

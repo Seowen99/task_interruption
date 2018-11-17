@@ -2,28 +2,27 @@ import rospy
 from smach import State, StateMachine
 from smach import Concurrence
 from smach_ros import SimpleActionState
-from plan_execution.msg import ExecutePlanGoal, ExecutePlanActionGoal
-from bwi_tasks.common import states, task_machine
+from plan_execution.msg import ExecutePlanGoal, ExecutePlanActionGoal, ExecutePlanAction
+from bwi_tasks.common import states, task_machine, visit_random_door
 from bwi_kr_execution import goal_formulators
-from move_base_msgs.msg import MoveBaseAction
+from std_msgs.msg import Empty, String
 import actionlib
 import random
 
 
-def run_concurrence(input_key):
+def run_concurrence(goal, input_key):
 
-	cc = Concurrence(outcomes=['succeeded', 'interrupted', 'aborted'],
+	cc = Concurrence(outcomes=['succeeded', 'preempted', 'aborted'],
 				default_outcome = 'succeeded',
 				input_keys=input_key,
-				outcome_map={'interrupted':
+				outcome_map={'preempted':
 					{ 'GENERATE_GOAL':'aborted',
-					  'INTERRUPT_TASK':'interrupted'},
-					'aborted': {'GENERATE_GOAL':'aborted',
+					  'INTERRUPT_TASK':'preempted'},
+					 'aborted': {'GENERATE_GOAL':'aborted',
 					  'INTERRUPT_TASK':'continued'}})
 
 	with cc:
-	    Concurrence.add('GENERATE_GOAL', task_machine.generate_goal_based_task_sm(
-				goal_formulators.GoToLocationName(), input_key))
+	    Concurrence.add('GENERATE_GOAL', visit_random_door.GetRandomLocation())
 
 	    Concurrence.add('INTERRUPT_TASK', Interrupt())
 	    
@@ -31,18 +30,23 @@ def run_concurrence(input_key):
 
 class Interrupt(State):
 	def __init__(self):
-		State.__init__(self, outcomes=['interrupted', 'continued'])
+		State.__init__(self, outcomes=['preempted', 'continued'])
 	
 	def execute(self, userdata):
 		
 		randNum = random.randint(1, 11)
 	
-		if (randNum >= 1):
-			client = actionlib.SimpleActionClient("/plan_executor/execute_plan",
-				MoveBaseAction)
-			client.wait_for_server()
-			client.cancel_all_goals()
-			return "interrupted"
+		#if (randNum >= 1):
+		#
+		#	client = actionlib.SimpleActionClient("/plan_executor/execute_plan",
+		#		ExecutePlanAction)
+		#	#rospy.loginfo("before server")
+		#	client.wait_for_server()
+		#	#rospy.loginfo("after server")
+		#	client.cancel_all_goals()
+		#	#rospy.loginfo("after cancel")
+		#	
+		#	return "preempted"
 			
 		return "continued"
 

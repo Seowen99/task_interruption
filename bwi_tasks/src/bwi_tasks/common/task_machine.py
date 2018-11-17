@@ -5,6 +5,8 @@ from smach import StateMachine, State
 
 from bwi_tasks.common import states, recovery_states
 from bwi_tasks.common import control_flow
+from std_msgs.msg import Empty, String
+import smach_ros
 
 task_sm_args = {"outcomes": ["succeeded", "preempted", "aborted"],
                 "input_keys": [],
@@ -74,7 +76,7 @@ def get_recover_from_failure_sm(ltmc):
                                      "I could not complete the task because I encountered an unknown error. I am sorry.")
     shared_recover_from_failure_sm = sm
     return sm
-
+	
 
 def get_execute_sm():
     # This state machine is large, so we will only instantiate once and point references to one copy
@@ -85,18 +87,20 @@ def get_execute_sm():
                                      output_keys=["msg_for_operator"])
     with shared_execute_sm:
         control_flow.inject_userdata_auto("_SET_DEFAULT_MSG_FOR_OPERATOR", "msg_for_operator", "")
-        repeat_state = control_flow.RepeatN(2)
-        StateMachine.add_auto("RESET_REPEAT", control_flow.ResetRepeat(repeat_state), ["succeeded"])
-        StateMachine.add("EXECUTE_GOAL", states.ExecuteGoal(),
-                         transitions={"preempted": "RECOVERY_REPEAT_GATE",
-                                      "aborted": "RECOVERY_REPEAT_GATE"})
-        StateMachine.add("EXECUTE_RECOVERY_GOAL", states.ExecuteGoal(),
-                         transitions={"preempted": "RECOVERY_REPEAT_GATE",
-                                      "aborted": "RECOVERY_REPEAT_GATE"})
-        StateMachine.add("RECOVERY_REPEAT_GATE", repeat_state,
-                         transitions={"repeat": "RECOVER", "done": "aborted"})
-        StateMachine.add("RECOVER", get_shared_recover_from_failure_sm(),
-                         transitions={'succeeded': "EXECUTE_RECOVERY_GOAL"})
+#        repeat_state = control_flow.RepeatN(2)
+#        StateMachine.add_auto("RESET_REPEAT", control_flow.ResetRepeat(repeat_state), ["succeeded"])
+        StateMachine.add_auto("EXECUTE_GOAL", states.ExecuteGoal(), ["succeeded"],
+                         transitions={"preempted": "preempted",
+                                      "aborted": "aborted",
+                                      "succeeded": "succeeded"})
+#        StateMachine.add("EXECUTE_RECOVERY_GOAL", states.ExecuteGoal(),
+#                         transitions={"preempted": "RECOVERY_REPEAT_GATE",
+#                                      "aborted": "RECOVERY_REPEAT_GATE"})
+#        StateMachine.add("RECOVERY_REPEAT_GATE", repeat_state,
+#                         transitions={"repeat": "RECOVER", "done": "aborted"})
+#        StateMachine.add("RECOVER", get_shared_recover_from_failure_sm(),
+#                         transitions={'succeeded': "EXECUTE_RECOVERY_GOAL"})
+
     return shared_execute_sm
 
 
