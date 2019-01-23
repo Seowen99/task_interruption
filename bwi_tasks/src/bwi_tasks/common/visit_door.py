@@ -5,13 +5,14 @@ from smach import State
 import rospy
 import time
 
-class JustinLocation(State):
-    def __init__(self):
-	State.__init__(self, outcomes=['preempted', 'continued', 'aborted', 'succeeded'], output_keys=['location'])
+class VisitDoor(State):
+    def __init__(self, door):
+	State.__init__(self, outcomes=['preempted', 'aborted', 'succeeded'], output_keys=['location'])
+	self.door = door
 		
     def execute(self, userdata):
-    	datathing = {"location": "d3_402"}
-    	userdata['location'] = "d3_402"
+    	datathing = {"location": self.door}
+    	userdata['location'] = self.door
 	rospy.loginfo(datathing["location"])
 	visit_door_sm = task_machine.generate_goal_based_task_sm(
 		goal_formulators.GoToLocationName(), ['location'])

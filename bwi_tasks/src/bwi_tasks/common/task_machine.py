@@ -85,6 +85,7 @@ def get_execute_sm():
         return shared_execute_sm
     shared_execute_sm = StateMachine(outcomes=["succeeded", "preempted", "aborted"], input_keys=["goal"],
                                      output_keys=["msg_for_operator"])
+                                     
     with shared_execute_sm:
         control_flow.inject_userdata_auto("_SET_DEFAULT_MSG_FOR_OPERATOR", "msg_for_operator", "")
 #        repeat_state = control_flow.RepeatN(2)

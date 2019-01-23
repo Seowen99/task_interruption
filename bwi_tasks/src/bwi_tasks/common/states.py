@@ -5,6 +5,8 @@ from smach_ros import SimpleActionState
 
 from plan_execution.helpers import *
 
+import rospy
+
 topics = {'plan_execution': "/plan_executor/execute_plan"}
 
 
@@ -33,6 +35,7 @@ class ExecuteGoal(SimpleActionState):
                                    output_keys=['result'])
 
     def goal_cb(self, userdata, goal):
+    	rospy.loginfo(userdata.goal.aspGoal)
         goal.aspGoal = userdata.goal.aspGoal
 
     def result_cb(self, userdata, state, result):

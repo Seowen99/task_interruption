@@ -1,9 +1,8 @@
 import rospy
 from smach import State, StateMachine
-from smach import Concurrence
 from smach_ros import SimpleActionState
 from plan_execution.msg import ExecutePlanGoal, ExecutePlanActionGoal, ExecutePlanAction
-from bwi_tasks.common import states, task_machine, actions_dictionary, task_stack
+from bwi_tasks.common import states, task_machine, actions_dictionary, task_stack, null_task
 from bwi_kr_execution import goal_formulators
 from std_msgs.msg import Empty, String
 import actionlib
@@ -11,90 +10,75 @@ import random
 import time
 import sys, select
 
+### this class is completely redundant. It is never used
 
-def run_concurrence(goal):
-
-	task_stack.TaskStack().add_to_stack(goal)
-
-	cc = Concurrence(outcomes=['succeeded', 'preempted', 'aborted'],
-				default_outcome = 'succeeded',
-				outcome_map = {'succeeded':{'GENERATE_GOAL':'succeeded'},
-					'preempted':{'INTERRUPT_TASK':'preempted'},
-					'aborted':{'GENERATE_GOAL':'aborted'}},
-				outcome_cb = out_cb,
-				child_termination_cb = child_term_cb)
-
-	rospy.loginfo(cc._child_termination_cb)
-
-	with cc:
-	    Concurrence.add('GENERATE_GOAL', 
-	    	actions_dictionary.ActionDictionary().findAction(goal))
-
-	    Concurrence.add('INTERRUPT_TASK', Interrupt(goal))
-	
-	#task_stack.TaskStack().remove_latest(goal)
-	
-	return cc
-	
-	
 class Interrupt(State):
-	def __init__(self, goal):
+	def __init__(self, InterruptionManager):
 		State.__init__(self, outcomes=['preempted', 'continued']),
-		self.goal = goal
+#		self.goal = goal
+		self.interruption_manager = InterruptionManager
+		self.count = 0
+		self.new_task = "NULL_TASK"
 	
-	def execute(self, goal): 
-# if goal is cancelled, add goal back to stack and then return that way the goal stays in the
-# stack for later use
+	# waits for input from the user
+	# calls to get a new task and interrupt the current task if it gets input
+	# waits until it is preempted by another state if no input is given
+#	def execute(self, userdata): 
 		
-		print "Hit any key to interrupt"
-		while (not self.preempt_requested()) :
+#		print "Hit any key to interrupt"
+#		BLOCK_UNTIL_ANOTHER_FUNCTION_IS_CALLED
+#		while (not self.preempt_requested()):
 		
 			#print "You have a second to answer!"
 			
-			i, o, e = select.select( [sys.stdin], [], [], 1 )
-			if (i):
-				client = actionlib.SimpleActionClient(
-					"/plan_executor/execute_plan", ExecutePlanAction)
-				rospy.loginfo("before server")
-				client.wait_for_server()
-				rospy.loginfo("after server")
-				client.cancel_all_goals()
-				rospy.loginfo("after cancel")	
-				return 'preempted'
+#			i, o, e = select.select( [sys.stdin], [], [], 1 )
+#			if (i):
+			
+#				self.get_new_task()
 				
-		rospy.loginfo("preempt_requested by outside")
-		return 'continued'
+#				self.interruption_manager.add_to_stack(self.interruption_manager.get_current_task())
+				
+#				self.interrupt_task()
+				
+#				return 'preempted'
+			
+#		print(self.interruption_manager.stack, " inside interruption_state after end")	
+#		rospy.loginfo("preempt_requested by outside")
+#		return 'continued'
 		
-		
-def out_cb(outcome_map):
-	if outcome_map['INTERRUPT_TASK'] == 'preempted':
-		return 'preempted'
-	elif outcome_map['GENERATE_GOAL'] == 'aborted':
-		return 'aborted'
-	else:
-		return 'succeeded'
-		
-
-def child_term_cb(outcome_map):
-
-	#return ['INTERRUPT_TASK']
-
-	rospy.loginfo("child term")
-	rospy.loginfo(outcome_map['INTERRUPT_TASK'])
-	rospy.loginfo(outcome_map['GENERATE_GOAL'])
+	# gets the new task from the user and assigns it to an attribute
+#	def get_new_task(self):
 	
-	if outcome_map['INTERRUPT_TASK'] == 'preempted':
-		rospy.loginfo("interrupt task cb")
-		return True
+#		if (self.count % 3 == 0):
+#			self.new_task = "GO_TO_JUSTIN"
+#		elif (self.count % 3 == 1):
+#			self.new_task = "GO_TO_JUSTIN"
+#		elif (self.count % 3 == 2):
+#			self.new_task = "GO_TO_420"
+#		self.count += 1
+#		self.new_task = "TEST_TASK"
+			
+	# adds current task to top of the stack
+	# adds new task to the top of the stack
+	# cancels current task and exits
+	def interrupt_task(self):
+	
+		# adds current task back to the top of the stack
+		self.interruption_manager.add_to_stack(self.interruption_manager.get_current_task())
 		
-	elif outcome_map['GENERATE_GOAL'] == 'succeeded':
-		rospy.loginfo("generate goal cb")
-		return True
+		# adds the new task back to the top of the stack
+		self.interruption_manager.add_to_stack(self.new_task)
+	
+		# cancels the current task so the GENERATE_GOAL	state in the interruption_manager
+		# returns and the concurrent state machine can exit
+#		client = actionlib.SimpleActionClient(
+#			"/plan_executor/execute_plan", ExecutePlanAction)
+#		rospy.loginfo("before server")
+#		client.wait_for_server()
+#		rospy.loginfo("after server")
+#		client.cancel_all_goals()
+#		rospy.loginfo("after cancel")
 		
-	elif outcome_map['GENERATE_GOAL'] == 'aborted':
-		rospy.loginfo("generate goal abort")
-		return True
+#		SELF.INTERRUPTING_TASK = THE_NEW_TASKING
 		
-	return False	
-
 
